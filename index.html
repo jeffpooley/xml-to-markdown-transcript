@@ -163,7 +163,9 @@
         }
 
         .title-tag {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             background: #ffc107;
             color: #856404;
             padding: 4px 10px;
@@ -171,6 +173,19 @@
             border-radius: 3px;
             font-size: 0.85em;
             font-family: monospace;
+        }
+
+        .title-tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+            color: #721c24;
+            padding: 0 4px;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+
+        .title-tag-remove:hover {
+            background: rgba(0,0,0,0.1);
         }
 
         .status-message {
@@ -350,6 +365,9 @@
                         ➕ Add All to Dictionary
                     </button>
                 </div>
+                <p class="help-text" style="margin-bottom: 10px;">
+                    Click <strong>✕</strong> to remove false positives (e.g., BBC, NPR) that shouldn't be italicized.
+                </p>
                 <div id="titlesList"></div>
             </div>
 
@@ -361,6 +379,9 @@
         let markdownOutput = '';
         let intervieweeName = '';
         let detectedTitles = new Set();
+        let removedTitles = new Set();
+        let currentMetadata = null;
+        let currentTranscript = null;
 
         // Load dictionary on page load
         window.addEventListener('DOMContentLoaded', function() {
@@ -513,6 +534,7 @@
 
             showStatus('Processing file...', 'success');
             detectedTitles = new Set();
+            removedTitles = new Set();
 
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -552,11 +574,32 @@
                 titlesDiv.style.display = 'block';
                 listDiv.innerHTML = Array.from(detectedTitles)
                     .sort()
-                    .map(title => `<span class="title-tag">${escapeHtml(title)}</span>`)
+                    .map(title => `
+                        <span class="title-tag">
+                            ${escapeHtml(title)}
+                            <span class="title-tag-remove" onclick="removeDetectedTitle('${escapeHtml(title).replace(/'/g, "\\'")}')">✕</span>
+                        </span>
+                    `)
                     .join('');
             } else {
                 titlesDiv.style.display = 'none';
             }
+        }
+
+        function removeDetectedTitle(title) {
+            // Add to removed list
+            removedTitles.add(title);
+
+            // Remove from detected set
+            detectedTitles.delete(title);
+
+            // Reprocess the markdown without this title
+            reprocessMarkdown();
+
+            // Update display
+            displayDetectedTitles();
+
+            showStatus(`Removed "${title}" - won't be italicized`, 'success');
         }
 
         function escapeHtml(text) {
@@ -698,19 +741,60 @@
 
             intervieweeName = metadata.interviewee.split(' ').pop().toLowerCase();
 
-            // Parse transcript
+            // Parse transcript (store original without italics)
             const transcript = parseVTT(metadata.vttTranscript, metadata.interviewee);
 
-            // Apply italics to transcript segments
-            transcript.forEach(segment => {
+            // Store original data for reprocessing
+            currentMetadata = JSON.parse(JSON.stringify(metadata));
+            currentTranscript = JSON.parse(JSON.stringify(transcript));
+
+            // Apply italics to copies
+            const processedTranscript = JSON.parse(JSON.stringify(transcript));
+            processedTranscript.forEach(segment => {
                 segment.text = detectAndItalicizeTitles(segment.text);
             });
 
             // Also apply to description
-            metadata.description = detectAndItalicizeTitles(metadata.description);
+            const processedMetadata = JSON.parse(JSON.stringify(metadata));
+            processedMetadata.description = detectAndItalicizeTitles(processedMetadata.description);
 
             // Generate markdown
-            return generateMarkdown(metadata, transcript);
+            return generateMarkdown(processedMetadata, processedTranscript);
+        }
+
+        function reprocessMarkdown() {
+            if (!currentMetadata || !currentTranscript) {
+                console.error('No data to reprocess');
+                return;
+            }
+
+            // Reset detected titles for this reprocess
+            detectedTitles = new Set();
+
+            // Reapply italics to fresh copies
+            const processedTranscript = JSON.parse(JSON.stringify(currentTranscript));
+            processedTranscript.forEach(segment => {
+                segment.text = detectAndItalicizeTitles(segment.text);
+            });
+
+            const processedMetadata = JSON.parse(JSON.stringify(currentMetadata));
+            processedMetadata.description = detectAndItalicizeTitles(processedMetadata.description);
+
+            // Remove any titles that were manually dismissed
+            removedTitles.forEach(title => {
+                detectedTitles.delete(title);
+                // Also remove italics from the text
+                processedTranscript.forEach(segment => {
+                    const regex = new RegExp('\\*' + escapeRegex(title) + '\\*', 'gi');
+                    segment.text = segment.text.replace(regex, title);
+                });
+                const descRegex = new RegExp('\\*' + escapeRegex(processedMetadata.description) + '\\*', 'gi');
+                processedMetadata.description = processedMetadata.description.replace(descRegex, title);
+            });
+
+            // Regenerate markdown
+            markdownOutput = generateMarkdown(processedMetadata, processedTranscript);
+            document.getElementById('previewContent').textContent = markdownOutput;
         }
 
         function parseVTT(vttText, intervieweeName) {

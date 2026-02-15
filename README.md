@@ -72,13 +72,36 @@ Plus recognizes major publications:
 - The Atlantic, The New Yorker, Time Magazine
 - Academic journals (Nature, Science, JAMA, The Lancet, etc.)
 
-### Custom Title Dictionary
+### Growing Title Dictionary
 
-Add your own titles in the "Italics Settings" section:
-- One title per line
-- Saved to browser storage
-- Exact match search (case-insensitive)
-- Works across all future conversions
+Build and maintain your title dictionary over time:
+
+**Auto-Add Detected Titles:**
+- After each conversion, click "Add All to Dictionary"
+- Detected titles are added automatically
+- No duplicates - merges intelligently
+
+**Export/Import:**
+- Export dictionary as `.txt` file
+- Import on other computers
+- Share with colleagues
+- Backup your work
+
+**Management:**
+- See count of titles in dictionary
+- Sort alphabetically
+- Clear all if needed
+- Saved to browser localStorage
+
+**Workflow:**
+1. Convert your first interview
+2. Review detected titles
+3. Click "Add All to Dictionary"
+4. Repeat for each interview
+5. Export to backup/share
+6. Import on other machines
+
+Your dictionary grows organically with each interview!
 
 ### Preview
 

@@ -100,6 +100,11 @@
             background: #6c7a7b;
         }
 
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
         textarea {
             width: 100%;
             min-height: 150px;
@@ -228,6 +233,33 @@
         .collapsible-content {
             margin-top: 15px;
         }
+
+        .dictionary-stats {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dictionary-stats strong {
+            color: #2e7d32;
+            font-size: 1.1em;
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -248,7 +280,8 @@
                     <li>Converts Aviary OHMS XML files to markdown format</li>
                     <li>Extracts metadata and transcript content</li>
                     <li>Automatically detects and italicizes book/publication titles</li>
-                    <li>Supports custom title dictionary for precise control</li>
+                    <li>Builds a growing dictionary that improves over time</li>
+                    <li>Export/import dictionary across computers</li>
                     <li>Generates downloadable .md file ready for PDF conversion</li>
                 </ul>
             </div>
@@ -264,20 +297,38 @@
 
         <div class="italics-section">
             <h2 class="toggle-section" onclick="toggleSection('italicsContent')">
-                ⚙️ Italics Settings (Optional) <span style="font-size: 0.8em;">▼</span>
+                📚 Title Dictionary <span style="font-size: 0.8em;">▼</span>
             </h2>
             <div id="italicsContent" class="collapsible-content">
+                <div class="dictionary-stats">
+                    <div>
+                        <strong id="dictionaryCount">0 titles</strong> in your dictionary
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary btn-small" onclick="document.getElementById('importFile').click()">
+                            📥 Import
+                        </button>
+                        <button class="btn btn-secondary btn-small" onclick="exportDictionary()">
+                            📤 Export
+                        </button>
+                    </div>
+                </div>
+
                 <p class="help-text">
-                    Add titles that should be italicized (one per line). The app will also auto-detect common patterns.
+                    Add titles that should be italicized (one per line). Your dictionary grows over time and syncs across conversions.
                 </p>
                 <textarea id="customTitles" placeholder="Enter titles to italicize (one per line):&#10;The New York Times&#10;Carmen&#10;Hamilton&#10;Below Deck"></textarea>
-                <div style="margin-top: 10px;">
-                    <button class="btn btn-secondary" onclick="saveCustomTitles()">💾 Save Titles</button>
-                    <button class="btn btn-secondary" onclick="loadSavedTitles()">📥 Load Saved</button>
-                    <button class="btn btn-secondary" onclick="clearCustomTitles()">🗑️ Clear</button>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="saveDictionary()">💾 Save Dictionary</button>
+                    <button class="btn btn-secondary" onclick="sortDictionary()">🔤 Sort A-Z</button>
+                    <button class="btn btn-secondary" onclick="clearDictionary()">🗑️ Clear All</button>
                 </div>
+
+                <input type="file" id="importFile" class="hidden-file-input" accept=".txt" onchange="importDictionary(event)">
+
                 <p class="help-text" style="margin-top: 10px;">
-                    <strong>Auto-detection patterns:</strong> The app automatically detects titles after phrases like "the book", "wrote", "published in", and known publications.
+                    <strong>Auto-detection:</strong> The app also automatically detects titles using pattern matching (e.g., "the book", "wrote", major publications).
                 </p>
             </div>
         </div>
@@ -293,7 +344,12 @@
             </div>
 
             <div id="detectedTitles" class="detected-titles" style="display: none;">
-                <h4>📚 Detected Titles (will be italicized):</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4>📚 Detected Titles (will be italicized):</h4>
+                    <button class="btn btn-secondary btn-small" onclick="addDetectedToDictionary()">
+                        ➕ Add All to Dictionary
+                    </button>
+                </div>
                 <div id="titlesList"></div>
             </div>
 
@@ -306,9 +362,10 @@
         let intervieweeName = '';
         let detectedTitles = new Set();
 
-        // Load saved titles on page load
+        // Load dictionary on page load
         window.addEventListener('DOMContentLoaded', function() {
-            loadSavedTitles();
+            loadDictionary();
+            updateDictionaryCount();
         });
 
         function toggleSection(id) {
@@ -316,26 +373,119 @@
             content.style.display = content.style.display === 'none' ? 'block' : 'none';
         }
 
-        function saveCustomTitles() {
-            const titles = document.getElementById('customTitles').value;
-            localStorage.setItem('customTitles', titles);
-            showStatus('Custom titles saved!', 'success');
+        function updateDictionaryCount() {
+            const titles = getDictionaryTitles();
+            const count = titles.length;
+            const label = count === 1 ? 'title' : 'titles';
+            document.getElementById('dictionaryCount').textContent = `${count} ${label}`;
         }
 
-        function loadSavedTitles() {
-            const saved = localStorage.getItem('customTitles');
+        function saveDictionary() {
+            const titles = document.getElementById('customTitles').value;
+            localStorage.setItem('titleDictionary', titles);
+            updateDictionaryCount();
+            showStatus('Dictionary saved!', 'success');
+        }
+
+        function loadDictionary() {
+            const saved = localStorage.getItem('titleDictionary');
             if (saved) {
                 document.getElementById('customTitles').value = saved;
-                showStatus('Loaded saved titles', 'success');
             }
         }
 
-        function clearCustomTitles() {
-            if (confirm('Clear all custom titles?')) {
+        function clearDictionary() {
+            if (confirm('Clear entire dictionary? This cannot be undone.')) {
                 document.getElementById('customTitles').value = '';
-                localStorage.removeItem('customTitles');
-                showStatus('Custom titles cleared', 'success');
+                localStorage.removeItem('titleDictionary');
+                updateDictionaryCount();
+                showStatus('Dictionary cleared', 'success');
             }
+        }
+
+        function sortDictionary() {
+            const titles = getDictionaryTitles();
+            const sorted = [...new Set(titles)].sort((a, b) =>
+                a.toLowerCase().localeCompare(b.toLowerCase())
+            );
+            document.getElementById('customTitles').value = sorted.join('\n');
+            saveDictionary();
+            showStatus('Dictionary sorted alphabetically', 'success');
+        }
+
+        function exportDictionary() {
+            const titles = document.getElementById('customTitles').value;
+            if (!titles.trim()) {
+                alert('Dictionary is empty. Nothing to export.');
+                return;
+            }
+
+            const blob = new Blob([titles], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'title-dictionary.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus('Dictionary exported!', 'success');
+        }
+
+        function importDictionary(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imported = e.target.result;
+                const existing = document.getElementById('customTitles').value;
+
+                // Merge and deduplicate
+                const allTitles = [...new Set([
+                    ...existing.split('\n').map(t => t.trim()).filter(t => t),
+                    ...imported.split('\n').map(t => t.trim()).filter(t => t)
+                ])];
+
+                document.getElementById('customTitles').value = allTitles.join('\n');
+                saveDictionary();
+                showStatus(`Imported! Dictionary now has ${allTitles.length} titles.`, 'success');
+            };
+            reader.readAsText(file);
+
+            // Reset input so same file can be imported again
+            event.target.value = '';
+        }
+
+        function getDictionaryTitles() {
+            const text = document.getElementById('customTitles').value;
+            return text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+        }
+
+        function addDetectedToDictionary() {
+            if (detectedTitles.size === 0) {
+                alert('No titles were detected in this conversion.');
+                return;
+            }
+
+            const existing = getDictionaryTitles();
+            const newTitles = Array.from(detectedTitles).filter(title =>
+                !existing.some(existing => existing.toLowerCase() === title.toLowerCase())
+            );
+
+            if (newTitles.length === 0) {
+                showStatus('All detected titles are already in your dictionary!', 'success');
+                return;
+            }
+
+            const allTitles = [...existing, ...newTitles];
+            document.getElementById('customTitles').value = allTitles.join('\n');
+            saveDictionary();
+
+            const label = newTitles.length === 1 ? 'title' : 'titles';
+            showStatus(`Added ${newTitles.length} new ${label} to dictionary!`, 'success');
         }
 
         function showStatus(message, type) {
@@ -415,18 +565,11 @@
             return div.innerHTML;
         }
 
-        function getCustomTitles() {
-            const text = document.getElementById('customTitles').value;
-            return text.split('\n')
-                .map(line => line.trim())
-                .filter(line => line.length > 0);
-        }
-
         function detectAndItalicizeTitles(text) {
-            // Get custom titles
-            const customTitles = getCustomTitles();
+            // Get custom titles from dictionary
+            const customTitles = getDictionaryTitles();
 
-            // Built-in known publications and titles
+            // Built-in known publications
             const knownPublications = [
                 'The New York Times',
                 'New York Times',
@@ -441,7 +584,10 @@
                 'Nature',
                 'Science',
                 'JAMA',
-                'The Lancet'
+                'The Lancet',
+                'BBC',
+                'NPR',
+                'PBS'
             ];
 
             // Combine all titles to check

@@ -891,11 +891,19 @@
             md += '---\n\n';
 
             // Transcript content
+            let previousSpeaker = null;
             for (const seg of transcript) {
-                if (seg.speaker === 'Q') {
-                    md += 'Q: ' + seg.text + '\n\n';
+                // Only add speaker label when speaker changes
+                if (seg.speaker !== previousSpeaker) {
+                    if (seg.speaker === 'Q') {
+                        md += 'Q: ' + seg.text + '\n\n';
+                    } else {
+                        md += lastName + ': ' + seg.text + '\n\n';
+                    }
+                    previousSpeaker = seg.speaker;
                 } else {
-                    md += lastName + ': ' + seg.text + '\n\n';
+                    // Same speaker, just add text without label
+                    md += seg.text + '\n\n';
                 }
             }
 

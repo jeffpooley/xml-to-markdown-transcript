@@ -1,4 +1,6 @@
+Advertising Age
 Business Week
+Editor and Publisher
 Harvard Business Review
 McCall’s
 New York Times
@@ -6,5 +8,5 @@ Newsweek
 Saturday Review
 The New Yorker
 The Wall Street Journal
-Time magazine
+Time
 Wall Street Journal

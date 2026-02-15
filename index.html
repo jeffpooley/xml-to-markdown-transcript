@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OHMS XML to Markdown Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-top: 10px;
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .file-input-wrapper {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .file-input {
+            padding: 10px;
+            font-size: 1em;
+            margin: 10px 0;
+        }
+
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .preview-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .preview-section.active {
+            display: block;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .preview-content {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            background: #fafafa;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>OHMS XML to Markdown Converter</h1>
+            <p class="subtitle">Convert Aviary OHMS XML transcripts to formatted markdown</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="upload-section">
+            <h2 style="margin-bottom: 20px;">Upload XML File</h2>
+
+            <div class="info-box">
+                <h3>What this tool does:</h3>
+                <ul>
+                    <li>Converts Aviary OHMS XML files to markdown format</li>
+                    <li>Extracts metadata and transcript content</li>
+                    <li>Formats in a clean, readable structure matching oral history standards</li>
+                    <li>Generates downloadable .md file</li>
+                </ul>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" class="file-input" accept=".xml" />
+                <br>
+                <button class="btn" onclick="processFile()">Convert to Markdown</button>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <div class="preview-header">
+                <h2>Preview</h2>
+                <div>
+                    <button class="btn btn-success" onclick="downloadMarkdown()">
+                        ⬇️ Download Markdown
+                    </button>
+                </div>
+            </div>
+            <div class="preview-content" id="previewContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let markdownOutput = '';
+        let intervieweeName = '';
+
+        function showStatus(message, type) {
+            const div = document.getElementById('statusMessage');
+            div.className = 'status-message ' + type;
+            div.textContent = message;
+        }
+
+        function processFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showStatus('Please select a file first', 'error');
+                return;
+            }
+
+            if (!file.name.endsWith('.xml')) {
+                showStatus('Please select an XML file', 'error');
+                return;
+            }
+
+            showStatus('Processing file...', 'success');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const xmlText = e.target.result;
+                    const markdown = convertToMarkdown(xmlText);
+
+                    markdownOutput = markdown;
+                    document.getElementById('previewContent').textContent = markdown;
+                    document.getElementById('previewSection').classList.add('active');
+                    showStatus('Conversion successful!', 'success');
+
+                    // Scroll to preview
+                    document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+                } catch (error) {
+                    showStatus('Error: ' + error.message, 'error');
+                    console.error('Conversion error:', error);
+                }
+            };
+
+            reader.onerror = function() {
+                showStatus('Error reading file', 'error');
+            };
+
+            reader.readAsText(file);
+        }
+
+        function convertToMarkdown(xmlText) {
+            // Parse XML
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+            // Check for parsing errors
+            const parserError = xmlDoc.querySelector('parsererror');
+            if (parserError) {
+                throw new Error('Invalid XML file');
+            }
+
+            // Find record element
+            const record = xmlDoc.querySelector('record');
+            if (!record) {
+                throw new Error('No <record> element found in XML');
+            }
+
+            // Extract metadata
+            const getVal = (tag) => {
+                const el = record.querySelector(tag);
+                return el ? el.textContent.trim() : '';
+            };
+
+            const metadata = {
+                title: getVal('title'),
+                date: getVal('date_nonpreferred_format'),
+                interviewee: getVal('interviewee'),
+                interviewer: getVal('interviewer'),
+                description: getVal('description'),
+                repository: getVal('repository'),
+                duration: getVal('duration'),
+                vttTranscript: getVal('vtt_transcript')
+            };
+
+            intervieweeName = metadata.interviewee.split(' ').pop().toLowerCase();
+
+            // Parse transcript
+            const transcript = parseVTT(metadata.vttTranscript, metadata.interviewee);
+
+            // Generate markdown
+            return generateMarkdown(metadata, transcript);
+        }
+
+        function parseVTT(vttText, intervieweeName) {
+            const lines = vttText.split('\n');
+            const segments = [];
+            const lastName = intervieweeName.split(' ').pop().toUpperCase();
+
+            for (let line of lines) {
+                line = line.trim();
+
+                // Skip timestamps, notes, etc
+                if (!line || line.includes('-->') || line.startsWith('NOTE') || line === 'WEBVTT') {
+                    continue;
+                }
+
+                // Find speaker tag
+                const match = line.match(/<v ([^>]+)>/);
+                if (match) {
+                    const speakerTag = match[1].trim();
+                    const speaker = speakerTag === 'Q' ? 'Q' : lastName;
+                    const text = line.replace(/<v [^>]+>/g, '').trim();
+
+                    segments.push({ speaker, text });
+                }
+            }
+
+            return segments;
+        }
+
+        function generateMarkdown(meta, transcript) {
+            const lastName = meta.interviewee.split(' ').pop().toUpperCase();
+            let md = '';
+
+            // Title page
+            md += 'ASC Alumni Oral History Project\n';
+            md += 'Annenberg School for Communication Library Archives\n';
+            md += 'University of Pennsylvania\n';
+            md += 'Philadelphia, PA\n\n\n\n\n\n';
+            md += '# ' + meta.interviewee.toUpperCase() + '\n\n';
+            md += 'interviewed and transcribed by\n\n';
+            md += meta.interviewer.toUpperCase() + '\n\n';
+            md += 'recorded by\n\n';
+            md += '[RECORDER NAME]\n\n\n\n';
+            md += '*' + meta.date + '*\n\n\n\n';
+            md += 'Philadelphia, PA\n\n';
+            md += 'Creative Commons CC BY-NC 4.0\n\n';
+            md += '---\n\n';
+
+            // Abstract
+            md += '## ABSTRACT\n\n' + meta.description + '\n\n';
+
+            // Restrictions
+            md += '## RESTRICTIONS\n\n';
+            md += 'None\n\n';
+
+            // Format
+            md += '## FORMAT\n\n';
+            md += 'Interview. Video recordings at the Annenberg School for Communication, University of Pennsylvania, 3620 Walnut Street, Philadelphia, PA 19104, USA. One mp4 file of ' + meta.duration + '.\n\n';
+
+            // Transcript info
+            md += '## TRANSCRIPT\n\n';
+            md += 'Transcribed by ' + meta.interviewer + '. Audited for accuracy and edited for clarity by ' + meta.interviewer + '. Transcript reviewed and approved by ' + meta.interviewee + ', ' + meta.interviewer + ', and [REVIEWER NAME]. Transcript [XX] pages.\n\n';
+
+            // Citation forms
+            md += '## BIBLIOGRAPHY AND CITATION FORMS\n\n';
+            md += '### Video recording\n\n';
+            md += '**Bibliography:** ' + meta.interviewee + '. Interview by ' + meta.interviewer + '. Video recording, ' + meta.date + '. ASC Alumni Oral History Project, Annenberg School for Communication Library Archives, University of Pennsylvania. ';
+            md += '**Footnote example:** ' + meta.interviewee + ', interview by ' + meta.interviewer + ', video recording, ' + meta.date + ', ASC Alumni Oral History Project, Annenberg School for Communication Library Archives, University of Pennsylvania.\n\n';
+
+            md += '### Transcript\n\n';
+            md += '**Bibliography:** ' + meta.interviewee + '. Interview by ' + meta.interviewer + '. Transcript of video recording, ' + meta.date + '. ASC Alumni Oral History Project, Annenberg School for Communication Library Archives, University of Pennsylvania. ';
+            md += '**Footnote example:** ' + meta.interviewee + ', interview by ' + meta.interviewer + ', transcript of video recording, ' + meta.date + ', ASC Alumni Oral History Project, Annenberg School for Communication Library Archives, University of Pennsylvania, pp. XX–XX.\n\n';
+
+            md += '---\n\n';
+
+            // Transcript header
+            md += '# Transcript of interview conducted ' + meta.date + ', with ' + meta.interviewee.toUpperCase() + '\n\n';
+            md += 'Philadelphia, PA\n\n';
+            md += 'Interviewed by ' + meta.interviewer + '\n\n';
+            md += '---\n\n';
+
+            // Transcript content
+            for (const seg of transcript) {
+                if (seg.speaker === 'Q') {
+                    md += 'Q: ' + seg.text + '\n\n';
+                } else {
+                    md += lastName + ': ' + seg.text + '\n\n';
+                }
+            }
+
+            md += '\n---\n\nEND OF INTERVIEW\n';
+
+            return md;
+        }
+
+        function downloadMarkdown() {
+            if (!markdownOutput) {
+                alert('No markdown content to download');
+                return;
+            }
+
+            const blob = new Blob([markdownOutput], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = intervieweeName + '_transcript.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

@@ -842,10 +842,10 @@
             const lastName = meta.interviewee.split(' ').pop().toUpperCase();
             let md = '';
 
-            // Title page
-            md += 'ASC Alumni Oral History Project\n';
-            md += 'Annenberg School for Communication Library Archives\n';
-            md += 'University of Pennsylvania\n';
+            // Title page (two spaces at end of line for markdown line breaks)
+            md += 'ASC Alumni Oral History Project  \n';
+            md += 'Annenberg School for Communication Library Archives  \n';
+            md += 'University of Pennsylvania  \n';
             md += 'Philadelphia, PA\n\n\n\n\n\n';
             md += '# ' + meta.interviewee.toUpperCase() + '\n\n';
             md += 'interviewed and transcribed by\n\n';

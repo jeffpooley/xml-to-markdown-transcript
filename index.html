@@ -641,11 +641,21 @@
 
             // Apply exact matches for known titles
             allTitles.forEach(title => {
+                // Skip if this title was manually removed
+                if ([...removedTitles].some(removed => removed.toLowerCase() === title.toLowerCase())) {
+                    return;
+                }
+
                 // Case-insensitive search but preserve original case
                 const regex = new RegExp('\\b' + escapeRegex(title) + '\\b', 'gi');
                 const matches = text.match(regex);
                 if (matches) {
                     matches.forEach(match => {
+                        // Skip if this match was manually removed
+                        if ([...removedTitles].some(removed => removed.toLowerCase() === match.toLowerCase())) {
+                            return;
+                        }
+
                         detectedTitles.add(match);
                         // Replace with italicized version
                         text = text.replace(new RegExp('\\b' + escapeRegex(match) + '\\b', 'g'), `*${match}*`);
@@ -664,6 +674,10 @@
             text = text.replace(/\b(the book|the novel|the memoir)\s+([A-Z][A-Za-z\s&'-]+?)(?=\s+(?:by|,|\.|\n|was|is|—))/g,
                 (match, prefix, title) => {
                     const cleanTitle = title.trim();
+                    // Skip if manually removed
+                    if ([...removedTitles].some(removed => removed.toLowerCase() === cleanTitle.toLowerCase())) {
+                        return match;
+                    }
                     detectedTitles.add(cleanTitle);
                     return `${prefix} *${cleanTitle}*`;
                 });
@@ -673,6 +687,10 @@
                 (match, verb, title) => {
                     const cleanTitle = title.trim();
                     if (cleanTitle.split(' ').length <= 6) { // Reasonable title length
+                        // Skip if manually removed
+                        if ([...removedTitles].some(removed => removed.toLowerCase() === cleanTitle.toLowerCase())) {
+                            return match;
+                        }
                         detectedTitles.add(cleanTitle);
                         return `${verb} *${cleanTitle}*`;
                     }
@@ -683,6 +701,10 @@
             text = text.replace(/\b(the journal|the magazine|the newspaper)\s+([A-Z][A-Za-z\s&'-]+?)(?=\s+(?:,|\.|\n|in|and))/g,
                 (match, prefix, title) => {
                     const cleanTitle = title.trim();
+                    // Skip if manually removed
+                    if ([...removedTitles].some(removed => removed.toLowerCase() === cleanTitle.toLowerCase())) {
+                        return match;
+                    }
                     detectedTitles.add(cleanTitle);
                     return `${prefix} *${cleanTitle}*`;
                 });
@@ -692,6 +714,10 @@
                 (match, prep, title) => {
                     const cleanTitle = title.trim();
                     if (cleanTitle.split(' ').length <= 5) {
+                        // Skip if manually removed
+                        if ([...removedTitles].some(removed => removed.toLowerCase() === cleanTitle.toLowerCase())) {
+                            return match;
+                        }
                         detectedTitles.add(cleanTitle);
                         return `${prep} *${cleanTitle}*`;
                     }
@@ -771,7 +797,7 @@
             // Reset detected titles for this reprocess
             detectedTitles = new Set();
 
-            // Reapply italics to fresh copies
+            // Reapply italics to fresh copies (detection now respects removedTitles)
             const processedTranscript = JSON.parse(JSON.stringify(currentTranscript));
             processedTranscript.forEach(segment => {
                 segment.text = detectAndItalicizeTitles(segment.text);
@@ -779,18 +805,6 @@
 
             const processedMetadata = JSON.parse(JSON.stringify(currentMetadata));
             processedMetadata.description = detectAndItalicizeTitles(processedMetadata.description);
-
-            // Remove any titles that were manually dismissed
-            removedTitles.forEach(title => {
-                detectedTitles.delete(title);
-                // Also remove italics from the text
-                processedTranscript.forEach(segment => {
-                    const regex = new RegExp('\\*' + escapeRegex(title) + '\\*', 'gi');
-                    segment.text = segment.text.replace(regex, title);
-                });
-                const descRegex = new RegExp('\\*' + escapeRegex(processedMetadata.description) + '\\*', 'gi');
-                processedMetadata.description = processedMetadata.description.replace(descRegex, title);
-            });
 
             // Regenerate markdown
             markdownOutput = generateMarkdown(processedMetadata, processedTranscript);

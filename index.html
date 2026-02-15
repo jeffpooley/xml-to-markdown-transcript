@@ -731,6 +731,11 @@
             return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
+        function convertToSmartApostrophes(text) {
+            // Replace straight apostrophes with curly apostrophes
+            return text.replace(/'/g, "'");
+        }
+
         function convertToMarkdown(xmlText) {
             // Parse XML
             const parser = new DOMParser();
@@ -778,11 +783,13 @@
             const processedTranscript = JSON.parse(JSON.stringify(transcript));
             processedTranscript.forEach(segment => {
                 segment.text = detectAndItalicizeTitles(segment.text);
+                segment.text = convertToSmartApostrophes(segment.text);
             });
 
             // Also apply to description
             const processedMetadata = JSON.parse(JSON.stringify(metadata));
             processedMetadata.description = detectAndItalicizeTitles(processedMetadata.description);
+            processedMetadata.description = convertToSmartApostrophes(processedMetadata.description);
 
             // Generate markdown
             return generateMarkdown(processedMetadata, processedTranscript);
@@ -801,10 +808,12 @@
             const processedTranscript = JSON.parse(JSON.stringify(currentTranscript));
             processedTranscript.forEach(segment => {
                 segment.text = detectAndItalicizeTitles(segment.text);
+                segment.text = convertToSmartApostrophes(segment.text);
             });
 
             const processedMetadata = JSON.parse(JSON.stringify(currentMetadata));
             processedMetadata.description = detectAndItalicizeTitles(processedMetadata.description);
+            processedMetadata.description = convertToSmartApostrophes(processedMetadata.description);
 
             // Regenerate markdown
             markdownOutput = generateMarkdown(processedMetadata, processedTranscript);
@@ -842,10 +851,10 @@
             const lastName = meta.interviewee.split(' ').pop().toUpperCase();
             let md = '';
 
-            // Title page
-            md += 'ASC Alumni Oral History Project\n';
-            md += 'Annenberg School for Communication Library Archives\n';
-            md += 'University of Pennsylvania\n';
+            // Title page (two spaces at end of line for markdown line breaks)
+            md += 'ASC Alumni Oral History Project  \n';
+            md += 'Annenberg School for Communication Library Archives  \n';
+            md += 'University of Pennsylvania  \n';
             md += 'Philadelphia, PA\n\n\n\n\n\n';
             md += '# ' + meta.interviewee.toUpperCase() + '\n\n';
             md += 'interviewed and transcribed by\n\n';

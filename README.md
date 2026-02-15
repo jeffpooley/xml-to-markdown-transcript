@@ -7,6 +7,9 @@ Convert Aviary OHMS XML transcript files to clean, formatted markdown documents.
 - 📁 Upload XML files via drag-and-drop or file browser
 - 🔄 Converts OHMS VTT transcripts to Q&A format
 - 📝 Generates markdown matching oral history formatting standards
+- ✨ **Smart italics detection** for book/publication titles
+- 📚 Custom title dictionary with browser storage
+- 🔍 Preview detected titles before download
 - ⬇️ Download as .md file
 - 👀 Preview before downloading
 
@@ -50,6 +53,36 @@ Generates markdown with:
 - Restrictions, Format, and Transcript metadata sections
 - Bibliography and citation forms
 - Full transcript in Q&A format with speaker labels
+- Automatic italics formatting for book/publication titles
+
+## Italics Feature
+
+The app intelligently detects and italicizes book and publication titles using a hybrid approach:
+
+### Automatic Pattern Detection
+
+Automatically detects titles after phrases like:
+- "the book", "the novel", "the memoir"
+- "wrote", "published", "authored"
+- "the journal", "the magazine", "the newspaper"
+- "in [Publication Name]"
+
+Plus recognizes major publications:
+- The New York Times, The Washington Post, The Wall Street Journal
+- The Atlantic, The New Yorker, Time Magazine
+- Academic journals (Nature, Science, JAMA, The Lancet, etc.)
+
+### Custom Title Dictionary
+
+Add your own titles in the "Italics Settings" section:
+- One title per line
+- Saved to browser storage
+- Exact match search (case-insensitive)
+- Works across all future conversions
+
+### Preview
+
+Before downloading, see all detected titles that will be italicized, allowing you to verify the results.
 
 ## Structure
 

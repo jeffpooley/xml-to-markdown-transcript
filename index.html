@@ -44,7 +44,7 @@
             font-size: 0.9em;
         }
 
-        .upload-section {
+        .upload-section, .italics-section {
             background: white;
             padding: 30px;
             border-radius: 8px;
@@ -92,6 +92,25 @@
             background: #229954;
         }
 
+        .btn-secondary {
+            background: #7f8c8d;
+        }
+
+        .btn-secondary:hover {
+            background: #6c7a7b;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+            resize: vertical;
+        }
+
         .preview-section {
             background: white;
             padding: 30px;
@@ -123,6 +142,30 @@
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
             white-space: pre-wrap;
+        }
+
+        .detected-titles {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .detected-titles h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .title-tag {
+            display: inline-block;
+            background: #ffc107;
+            color: #856404;
+            padding: 4px 10px;
+            margin: 4px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            font-family: monospace;
         }
 
         .status-message {
@@ -166,13 +209,32 @@
         .info-box li {
             margin: 5px 0;
         }
+
+        .help-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .toggle-section {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle-section:hover {
+            opacity: 0.8;
+        }
+
+        .collapsible-content {
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
     <header>
         <div class="container">
             <h1>OHMS XML to Markdown Converter</h1>
-            <p class="subtitle">Convert Aviary OHMS XML transcripts to formatted markdown</p>
+            <p class="subtitle">Convert Aviary OHMS XML transcripts to formatted markdown with smart italics</p>
         </div>
     </header>
 
@@ -185,8 +247,9 @@
                 <ul>
                     <li>Converts Aviary OHMS XML files to markdown format</li>
                     <li>Extracts metadata and transcript content</li>
-                    <li>Formats in a clean, readable structure matching oral history standards</li>
-                    <li>Generates downloadable .md file</li>
+                    <li>Automatically detects and italicizes book/publication titles</li>
+                    <li>Supports custom title dictionary for precise control</li>
+                    <li>Generates downloadable .md file ready for PDF conversion</li>
                 </ul>
             </div>
 
@@ -199,6 +262,26 @@
             <div id="statusMessage" class="status-message"></div>
         </div>
 
+        <div class="italics-section">
+            <h2 class="toggle-section" onclick="toggleSection('italicsContent')">
+                ⚙️ Italics Settings (Optional) <span style="font-size: 0.8em;">▼</span>
+            </h2>
+            <div id="italicsContent" class="collapsible-content">
+                <p class="help-text">
+                    Add titles that should be italicized (one per line). The app will also auto-detect common patterns.
+                </p>
+                <textarea id="customTitles" placeholder="Enter titles to italicize (one per line):&#10;The New York Times&#10;Carmen&#10;Hamilton&#10;Below Deck"></textarea>
+                <div style="margin-top: 10px;">
+                    <button class="btn btn-secondary" onclick="saveCustomTitles()">💾 Save Titles</button>
+                    <button class="btn btn-secondary" onclick="loadSavedTitles()">📥 Load Saved</button>
+                    <button class="btn btn-secondary" onclick="clearCustomTitles()">🗑️ Clear</button>
+                </div>
+                <p class="help-text" style="margin-top: 10px;">
+                    <strong>Auto-detection patterns:</strong> The app automatically detects titles after phrases like "the book", "wrote", "published in", and known publications.
+                </p>
+            </div>
+        </div>
+
         <div class="preview-section" id="previewSection">
             <div class="preview-header">
                 <h2>Preview</h2>
@@ -208,6 +291,12 @@
                     </button>
                 </div>
             </div>
+
+            <div id="detectedTitles" class="detected-titles" style="display: none;">
+                <h4>📚 Detected Titles (will be italicized):</h4>
+                <div id="titlesList"></div>
+            </div>
+
             <div class="preview-content" id="previewContent"></div>
         </div>
     </div>
@@ -215,11 +304,47 @@
     <script>
         let markdownOutput = '';
         let intervieweeName = '';
+        let detectedTitles = new Set();
+
+        // Load saved titles on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadSavedTitles();
+        });
+
+        function toggleSection(id) {
+            const content = document.getElementById(id);
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function saveCustomTitles() {
+            const titles = document.getElementById('customTitles').value;
+            localStorage.setItem('customTitles', titles);
+            showStatus('Custom titles saved!', 'success');
+        }
+
+        function loadSavedTitles() {
+            const saved = localStorage.getItem('customTitles');
+            if (saved) {
+                document.getElementById('customTitles').value = saved;
+                showStatus('Loaded saved titles', 'success');
+            }
+        }
+
+        function clearCustomTitles() {
+            if (confirm('Clear all custom titles?')) {
+                document.getElementById('customTitles').value = '';
+                localStorage.removeItem('customTitles');
+                showStatus('Custom titles cleared', 'success');
+            }
+        }
 
         function showStatus(message, type) {
             const div = document.getElementById('statusMessage');
             div.className = 'status-message ' + type;
             div.textContent = message;
+            setTimeout(() => {
+                div.style.display = 'none';
+            }, 3000);
         }
 
         function processFile() {
@@ -237,6 +362,7 @@
             }
 
             showStatus('Processing file...', 'success');
+            detectedTitles = new Set();
 
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -247,6 +373,10 @@
                     markdownOutput = markdown;
                     document.getElementById('previewContent').textContent = markdown;
                     document.getElementById('previewSection').classList.add('active');
+
+                    // Show detected titles
+                    displayDetectedTitles();
+
                     showStatus('Conversion successful!', 'success');
 
                     // Scroll to preview
@@ -262,6 +392,128 @@
             };
 
             reader.readAsText(file);
+        }
+
+        function displayDetectedTitles() {
+            const titlesDiv = document.getElementById('detectedTitles');
+            const listDiv = document.getElementById('titlesList');
+
+            if (detectedTitles.size > 0) {
+                titlesDiv.style.display = 'block';
+                listDiv.innerHTML = Array.from(detectedTitles)
+                    .sort()
+                    .map(title => `<span class="title-tag">${escapeHtml(title)}</span>`)
+                    .join('');
+            } else {
+                titlesDiv.style.display = 'none';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getCustomTitles() {
+            const text = document.getElementById('customTitles').value;
+            return text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+        }
+
+        function detectAndItalicizeTitles(text) {
+            // Get custom titles
+            const customTitles = getCustomTitles();
+
+            // Built-in known publications and titles
+            const knownPublications = [
+                'The New York Times',
+                'New York Times',
+                'The Washington Post',
+                'The Wall Street Journal',
+                'The Guardian',
+                'Time Magazine',
+                'Newsweek',
+                'The Atlantic',
+                'The New Yorker',
+                'Harvard Business Review',
+                'Nature',
+                'Science',
+                'JAMA',
+                'The Lancet'
+            ];
+
+            // Combine all titles to check
+            const allTitles = [...new Set([...customTitles, ...knownPublications])];
+
+            // Sort by length (longest first) to avoid partial matches
+            allTitles.sort((a, b) => b.length - a.length);
+
+            // Apply exact matches for known titles
+            allTitles.forEach(title => {
+                // Case-insensitive search but preserve original case
+                const regex = new RegExp('\\b' + escapeRegex(title) + '\\b', 'gi');
+                const matches = text.match(regex);
+                if (matches) {
+                    matches.forEach(match => {
+                        detectedTitles.add(match);
+                        // Replace with italicized version
+                        text = text.replace(new RegExp('\\b' + escapeRegex(match) + '\\b', 'g'), `*${match}*`);
+                    });
+                }
+            });
+
+            // Pattern-based detection
+            text = detectPatternBasedTitles(text);
+
+            return text;
+        }
+
+        function detectPatternBasedTitles(text) {
+            // Pattern 1: After "the book"
+            text = text.replace(/\b(the book|the novel|the memoir)\s+([A-Z][A-Za-z\s&'-]+?)(?=\s+(?:by|,|\.|\n|was|is|—))/g,
+                (match, prefix, title) => {
+                    const cleanTitle = title.trim();
+                    detectedTitles.add(cleanTitle);
+                    return `${prefix} *${cleanTitle}*`;
+                });
+
+            // Pattern 2: After "wrote", "published", "authored"
+            text = text.replace(/\b(wrote|published|authored|co-authored)\s+([A-Z][A-Za-z\s&'-]+?)(?=\s+(?:in|,|\.|\n|for))/g,
+                (match, verb, title) => {
+                    const cleanTitle = title.trim();
+                    if (cleanTitle.split(' ').length <= 6) { // Reasonable title length
+                        detectedTitles.add(cleanTitle);
+                        return `${verb} *${cleanTitle}*`;
+                    }
+                    return match;
+                });
+
+            // Pattern 3: After "the journal", "the article"
+            text = text.replace(/\b(the journal|the magazine|the newspaper)\s+([A-Z][A-Za-z\s&'-]+?)(?=\s+(?:,|\.|\n|in|and))/g,
+                (match, prefix, title) => {
+                    const cleanTitle = title.trim();
+                    detectedTitles.add(cleanTitle);
+                    return `${prefix} *${cleanTitle}*`;
+                });
+
+            // Pattern 4: "in [Publication]" pattern
+            text = text.replace(/\b(in|for)\s+(The\s+[A-Z][A-Za-z\s]+?)(?=\s+(?:,|\.|\n|and|that))/g,
+                (match, prep, title) => {
+                    const cleanTitle = title.trim();
+                    if (cleanTitle.split(' ').length <= 5) {
+                        detectedTitles.add(cleanTitle);
+                        return `${prep} *${cleanTitle}*`;
+                    }
+                    return match;
+                });
+
+            return text;
+        }
+
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
         function convertToMarkdown(xmlText) {
@@ -302,6 +554,14 @@
 
             // Parse transcript
             const transcript = parseVTT(metadata.vttTranscript, metadata.interviewee);
+
+            // Apply italics to transcript segments
+            transcript.forEach(segment => {
+                segment.text = detectAndItalicizeTitles(segment.text);
+            });
+
+            // Also apply to description
+            metadata.description = detectAndItalicizeTitles(metadata.description);
 
             // Generate markdown
             return generateMarkdown(metadata, transcript);

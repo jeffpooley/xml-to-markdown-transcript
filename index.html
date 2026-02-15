@@ -312,7 +312,7 @@
 
         <div class="italics-section">
             <h2 class="toggle-section" onclick="toggleSection('italicsContent')">
-                📚 Title Dictionary <span style="font-size: 0.8em;">▼</span>
+                Title Dictionary <span style="font-size: 0.8em;">▼</span>
             </h2>
             <div id="italicsContent" class="collapsible-content">
                 <div class="dictionary-stats">
@@ -321,10 +321,10 @@
                     </div>
                     <div>
                         <button class="btn btn-secondary btn-small" onclick="document.getElementById('importFile').click()">
-                            📥 Import
+                            Import
                         </button>
                         <button class="btn btn-secondary btn-small" onclick="exportDictionary()">
-                            📤 Export
+                            Export
                         </button>
                     </div>
                 </div>
@@ -335,9 +335,9 @@
                 <textarea id="customTitles" placeholder="Enter titles to italicize (one per line):&#10;The New York Times&#10;Carmen&#10;Hamilton&#10;Below Deck"></textarea>
 
                 <div class="button-group">
-                    <button class="btn btn-secondary" onclick="saveDictionary()">💾 Save Dictionary</button>
-                    <button class="btn btn-secondary" onclick="sortDictionary()">🔤 Sort A-Z</button>
-                    <button class="btn btn-secondary" onclick="clearDictionary()">🗑️ Clear All</button>
+                    <button class="btn btn-secondary" onclick="saveDictionary()">Save Dictionary</button>
+                    <button class="btn btn-secondary" onclick="sortDictionary()">Sort A-Z</button>
+                    <button class="btn btn-secondary" onclick="clearDictionary()">Clear All</button>
                 </div>
 
                 <input type="file" id="importFile" class="hidden-file-input" accept=".txt" onchange="importDictionary(event)">
@@ -353,16 +353,16 @@
                 <h2>Preview</h2>
                 <div>
                     <button class="btn btn-success" onclick="downloadMarkdown()">
-                        ⬇️ Download Markdown
+                        Download Markdown
                     </button>
                 </div>
             </div>
 
             <div id="detectedTitles" class="detected-titles" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4>📚 Detected Titles (will be italicized):</h4>
+                    <h4>Detected Titles (will be italicized):</h4>
                     <button class="btn btn-secondary btn-small" onclick="addDetectedToDictionary()">
-                        ➕ Add All to Dictionary
+                        Add All to Dictionary
                     </button>
                 </div>
                 <p class="help-text" style="margin-bottom: 10px;">

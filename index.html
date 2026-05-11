@@ -786,10 +786,13 @@
                 segment.text = convertToSmartApostrophes(segment.text);
             });
 
-            // Also apply to description
+            // Apply to all metadata fields
             const processedMetadata = JSON.parse(JSON.stringify(metadata));
             processedMetadata.description = detectAndItalicizeTitles(processedMetadata.description);
             processedMetadata.description = convertToSmartApostrophes(processedMetadata.description);
+            processedMetadata.title = convertToSmartApostrophes(processedMetadata.title);
+            processedMetadata.interviewee = convertToSmartApostrophes(processedMetadata.interviewee);
+            processedMetadata.interviewer = convertToSmartApostrophes(processedMetadata.interviewer);
 
             // Generate markdown
             return generateMarkdown(processedMetadata, processedTranscript);
@@ -814,6 +817,9 @@
             const processedMetadata = JSON.parse(JSON.stringify(currentMetadata));
             processedMetadata.description = detectAndItalicizeTitles(processedMetadata.description);
             processedMetadata.description = convertToSmartApostrophes(processedMetadata.description);
+            processedMetadata.title = convertToSmartApostrophes(processedMetadata.title);
+            processedMetadata.interviewee = convertToSmartApostrophes(processedMetadata.interviewee);
+            processedMetadata.interviewer = convertToSmartApostrophes(processedMetadata.interviewer);
 
             // Regenerate markdown
             markdownOutput = generateMarkdown(processedMetadata, processedTranscript);

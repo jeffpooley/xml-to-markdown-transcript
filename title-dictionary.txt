@@ -1,12 +1,3 @@
-Advertising Age
-Business Week
-Editor and Publisher
-Harvard Business Review
-McCall’s
+Washington Post
 New York Times
-Newsweek
-Saturday Review
-The New Yorker
-The Wall Street Journal
-Time
-Wall Street Journal
+Harvard Business Review
